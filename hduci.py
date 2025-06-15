@@ -17,9 +17,10 @@ import seaborn as sns
 
 # Supervised Models
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import LinearSVC
+from sklearn.svm import LinearSVC,SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
 
 # Unsupervised Models
 from sklearn.cluster import KMeans
@@ -32,6 +33,9 @@ from sklearn.feature_selection import SelectKBest, chi2
 
 # Model Optimization
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+
+# Model Evaluation
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc
 
 """#  **Data Preprocessing & Cleaning**"""
 
@@ -190,3 +194,193 @@ print("Final selected features for modeling:", final_features)
 
 # Step 3: Build final X_selected DataFrame
 X_selected = pd.DataFrame(X_scaled, columns=feature_names)[final_features]
+
+"""# Supervised Learning - Classification Models"""
+
+X_train, X_test, y_train, y_test = train_test_split(X_selected, y, test_size=0.2, random_state=42, stratify=y)
+
+lR =LogisticRegression(max_iter=1000, random_state=42).fit(X_train,y_train)
+# model evaluation
+y_pred = lR.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred, average='weighted')
+recall = recall_score(y_test, y_pred, average='weighted')
+f1 = f1_score(y_test, y_pred, average='weighted')
+print(f"Training Score:{lR.score(X_train,y_train):.2f}")
+print(f"Accuracy: {accuracy:.2f}")
+print(f"Precision: {precision:.2f}")
+print(f"Recall: {recall:.2f}")
+print(f"F1 Score: {f1:.2f}")
+
+dT = DecisionTreeClassifier(random_state=42).fit(X_train,y_train)
+# model evaluation
+y_pred = dT.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred, average='weighted')
+recall = recall_score(y_test, y_pred, average='weighted')
+f1 = f1_score(y_test, y_pred, average='weighted')
+print(f"Training Score:{dT.score(X_train,y_train):.2f}")
+print(f"Accuracy: {accuracy:.2f}")
+print(f"Precision: {precision:.2f}")
+print(f"Recall: {recall:.2f}")
+print(f"F1 Score: {f1:.2f}")
+
+rF = RandomForestClassifier(random_state=42).fit(X_train,y_train)
+# model evaluation
+y_pred = rF.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred, average='weighted')
+recall = recall_score(y_test, y_pred, average='weighted')
+f1 = f1_score(y_test, y_pred, average='weighted')
+print(f"Training Score:{rF.score(X_train,y_train):.2f}")
+print(f"Accuracy: {accuracy:.2f}")
+print(f"Precision: {precision:.2f}")
+print(f"Recall: {recall:.2f}")
+print(f"F1 Score: {f1:.2f}")
+
+svm = SVC(random_state=42).fit(X_train,y_train)
+# model evaluation
+y_pred = svm.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred, average='weighted')
+recall = recall_score(y_test, y_pred, average='weighted')
+f1 = f1_score(y_test, y_pred, average='weighted')
+print(f"Training Score:{svm.score(X_train,y_train):.2f}")
+print(f"Accuracy: {accuracy:.2f}")
+print(f"Precision: {precision:.2f}")
+print(f"Recall: {recall:.2f}")
+print(f"F1 Score: {f1:.2f}")
+
+"""# Unsupervised Learning - Clustering
+
+"""
+
+# Use scaled features for clustering
+X_cluster = X_selected  # or X_selected if not scaled again
+
+inertia = []
+
+# Try K from 1 to 10
+for k in range(1, 11):
+    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+    kmeans.fit(X_cluster)
+    inertia.append(kmeans.inertia_)
+
+# Plot Elbow Curve
+plt.figure(figsize=(8, 5))
+plt.plot(range(1, 11), inertia, 'bo-', marker='o')
+plt.xlabel('Number of clusters (K)')
+plt.ylabel('Inertia (Sum of Squared Distances)')
+plt.title('Elbow Method for Optimal K')
+plt.grid(True)
+plt.show()
+
+kmeans_final = KMeans(n_clusters=3, random_state=42).fit(X_cluster)
+clusters = kmeans_final.fit_predict(X_cluster)
+# Add cluster labels to your DataFrame if needed
+df_clusters = pd.DataFrame(X_cluster, columns=feature_names)
+df_clusters['Cluster'] = clusters
+# Reduce dimensions to 2D for visualization
+pca_vis = PCA(n_components=2)
+X_vis = pca_vis.fit_transform(X_cluster)
+
+# Plot clusters
+plt.figure(figsize=(8, 6))
+plt.scatter(X_vis[:, 0], X_vis[:, 1], c=clusters, cmap='tab10', s=50)
+plt.xlabel('PCA 1')
+plt.ylabel('PCA 2')
+plt.title('K-Means Clustering with K=3 (Visualized via PCA)')
+plt.colorbar(label='Cluster')
+plt.grid(True)
+plt.show()
+
+from scipy.cluster.hierarchy import dendrogram, linkage
+import matplotlib.pyplot as plt
+
+# Use a smaller sample if the data is large to keep the dendrogram readable
+X_sample = X_cluster[:200]  # Optional: sample first 200 for clarity
+
+# Compute the linkage matrix
+linked = linkage(X_sample, method='ward')  # 'ward' minimizes variance
+
+# Plot the dendrogram
+plt.figure(figsize=(12, 6))
+dendrogram(linked,
+           orientation='top',
+           distance_sort='descending',
+           show_leaf_counts=True)
+plt.title('Hierarchical Clustering Dendrogram')
+plt.xlabel('Sample index')
+plt.ylabel('Distance')
+plt.grid(True)
+plt.show()
+
+"""# Hyperparameter Tuning"""
+
+# Logistic Regression
+lr = LogisticRegression(max_iter=1000)
+
+param_grid_lr = {
+    'C': [0.01, 0.1, 1, 10],
+    'penalty': ['l2'],
+    'solver': ['liblinear', 'lbfgs']
+}
+
+grid_lr = GridSearchCV(lr, param_grid_lr, cv=5, scoring='accuracy', n_jobs=-1)
+grid_lr.fit(X_train, y_train)
+best_lr = grid_lr.best_estimator_
+
+# Random Forest
+rf = RandomForestClassifier(random_state=42)
+
+param_grid_rf = {
+    'n_estimators': [50, 100, 200],
+    'max_depth': [None, 10, 20],
+    'min_samples_split': [2, 5],
+    'min_samples_leaf': [1, 2]
+}
+
+random_rf = RandomizedSearchCV(rf, param_grid_rf, n_iter=10, cv=5,
+                               scoring='accuracy', random_state=42, n_jobs=-1)
+random_rf.fit(X_train, y_train)
+best_rf = random_rf.best_estimator_
+
+# Support Vector Machine
+svm = SVC()
+
+param_grid_svm = {
+    'C': [0.1, 1, 10],
+    'kernel': ['linear', 'rbf'],
+    'gamma': ['scale', 'auto']
+}
+
+grid_svm = GridSearchCV(svm, param_grid_svm, cv=5, scoring='accuracy', n_jobs=-1)
+grid_svm.fit(X_train, y_train)
+best_svm = grid_svm.best_estimator_
+
+# Decision Tree
+dt = DecisionTreeClassifier(random_state=42)
+
+param_grid_dt = {
+    'max_depth': [None, 10, 20, 30],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4]
+}
+
+random_dt = RandomizedSearchCV(dt, param_grid_dt, n_iter=10, cv=5,
+                               scoring='accuracy', random_state=42, n_jobs=-1)
+random_dt.fit(X_train, y_train)
+best_dt = random_dt.best_estimator_
+
+from sklearn.metrics import accuracy_score
+print("Before Hyperparameter Tuning")
+print(f"Logistic Regression Accuracy: {accuracy_score(y_test, lR.predict(X_test)):.2f}")
+print(f"Random Forest Accuracy: {accuracy_score(y_test, rF.predict(X_test)):.2f}")
+print(f"SVM Accuracy: {accuracy_score(y_test, svm.predict(X_test)):.2f}")
+print(f"Decision Tree Accuracy: {accuracy_score(y_test, dT.predict(X_test)):.2f}")
+print("\nAfter Hyperparameter Tuning")
+print(f"Logistic Regression Accuracy: {accuracy_score(y_test, best_lr.predict(X_test)):.2f}")
+print(f"Random Forest Accuracy: {accuracy_score(y_test, best_rf.predict(X_test)):.2f}")
+print(f"SVM Accuracy: {accuracy_score(y_test, best_svm.predict(X_test)):.2f}")
+print(f"Decision Tree Accuracy: {accuracy_score(y_test, best_dt.predict(X_test)):.2f}")
+
